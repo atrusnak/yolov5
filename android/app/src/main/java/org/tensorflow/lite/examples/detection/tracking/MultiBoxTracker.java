@@ -37,7 +37,7 @@ import org.tensorflow.lite.examples.detection.tflite.Classifier.Recognition;
 
 /** A tracker that handles non-max suppression and matches existing objects to new detections. */
 public class MultiBoxTracker {
-  private static final float TEXT_SIZE_DIP = 18;
+  private static final float TEXT_SIZE_DIP = 12  ;
   private static final float MIN_SIZE = 16.0f;
   private static final int[] COLORS = {
           Color.BLUE,
@@ -47,7 +47,8 @@ public class MultiBoxTracker {
           Color.CYAN,
           Color.MAGENTA,
           Color.WHITE,
-          Color.parseColor("#55FF55"),
+          //orange
+          Color.parseColor("#ed8218"),
           Color.parseColor("#FFA500"),
           Color.parseColor("#FF8888"),
           Color.parseColor("#AAAAFF"),
@@ -135,22 +136,50 @@ public class MultiBoxTracker {
                     sensorOrientation,
                     false);
     for (final TrackedRecognition recognition : trackedObjects) {
+      if (recognition.title.equals("cube")) {
+        continue;
+      }
       final RectF trackedPos = new RectF(recognition.location);
 
       getFrameToCanvasMatrix().mapRect(trackedPos);
-      boxPaint.setColor(recognition.color);
+      if (recognition.title.equals("blue")) {
+        boxPaint.setColor(Color.BLUE);
+      }
+      else if (recognition.title.equals("green")) {
+        boxPaint.setColor(Color.GREEN);
+      }
+      else if (recognition.title.equals("white")) {
+        boxPaint.setColor(Color.WHITE);
+      }
+      else if (recognition.title.equals("yellow")) {
+        boxPaint.setColor(Color.YELLOW);
+      }
+      else if (recognition.title.equals("red")) {
+        boxPaint.setColor(Color.RED);
+      }
+      else if (recognition.title.equals("orange")) {
+        boxPaint.setColor(Color.parseColor("#ed8218"));
+      }
+      else if (recognition.title.equals("cube")) {
+        boxPaint.setColor(Color.CYAN);
+      }
+      else {
+        boxPaint.setColor(Color.BLACK);
+      }
 
       float cornerSize = Math.min(trackedPos.width(), trackedPos.height()) / 8.0f;
       canvas.drawRoundRect(trackedPos, cornerSize, cornerSize, boxPaint);
 
       final String labelString =
               !TextUtils.isEmpty(recognition.title)
-                      ? String.format("%s %.2f", recognition.title, (100 * recognition.detectionConfidence))
+                      ? String.format("%s", recognition.title)
+                      //? String.format("%s %.2f", recognition.title, (100 * recognition.detectionConfidence))
                       : String.format("%.2f", (100 * recognition.detectionConfidence));
       //            borderedText.drawText(canvas, trackedPos.left + cornerSize, trackedPos.top,
       // labelString);
       borderedText.drawText(
-              canvas, trackedPos.left + cornerSize, trackedPos.top, labelString + "%", boxPaint);
+              canvas, trackedPos.left + cornerSize, trackedPos.top, labelString , boxPaint);
+              //canvas, trackedPos.left + cornerSize, trackedPos.top, labelString + "%", boxPaint);
     }
   }
 

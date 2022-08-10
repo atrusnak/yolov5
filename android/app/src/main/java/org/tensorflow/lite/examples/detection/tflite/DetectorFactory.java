@@ -16,10 +16,10 @@ public class DetectorFactory {
         int[][] masks = new int[][]{{0}};
         int[] anchors = new int[]{0};
 
-        if (modelFilename.equals("yolov5s.tflite")) {
-            labelFilename = "file:///android_asset/coco.txt";
+        if (modelFilename.equals("best2-fp16.tflite")) {
+            labelFilename = "file:///android_asset/cube.txt";
             isQuantized = false;
-            inputSize = 640;
+            inputSize = 256;
             output_width = new int[]{80, 40, 20};
             masks = new int[][]{{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
             anchors = new int[]{
