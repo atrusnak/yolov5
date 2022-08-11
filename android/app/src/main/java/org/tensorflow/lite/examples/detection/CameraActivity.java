@@ -597,6 +597,10 @@ public abstract class CameraActivity extends AppCompatActivity
     }
   }
 
+  public void onDetect() {
+    System.out.println("detect button pressed");
+  }
+
   protected void showFrameInfo(String frameInfo) {
     frameValueTextView.setText(frameInfo);
   }
