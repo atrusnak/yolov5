@@ -597,7 +597,7 @@ public abstract class CameraActivity extends AppCompatActivity
     }
   }
 
-  public void onDetect() {
+  public void onDetect(View view) {
     System.out.println("detect button pressed");
   }
 

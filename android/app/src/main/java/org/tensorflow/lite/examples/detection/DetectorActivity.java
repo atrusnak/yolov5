@@ -26,13 +26,22 @@ import android.graphics.Paint.Style;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
+import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 import android.util.TypedValue;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -77,6 +86,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     private Matrix cropToFrameTransform;
 
     private MultiBoxTracker tracker;
+    private List<Classifier.Recognition> globalResults;
 
     private BorderedText borderedText;
 
@@ -89,6 +99,8 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
         borderedText.setTypeface(Typeface.MONOSPACE);
 
         tracker = new MultiBoxTracker(this);
+
+        globalResults = new ArrayList<Classifier.Recognition>();
 
         final int modelIndex = modelView.getCheckedItemPosition();
         final String modelString = modelStrings.get(modelIndex);
@@ -239,11 +251,15 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
         runInBackground(
                 new Runnable() {
+                    @RequiresApi(api = Build.VERSION_CODES.N)
                     @Override
                     public void run() {
                         LOGGER.i("Running detection on image " + currTimestamp);
                         final long startTime = SystemClock.uptimeMillis();
                         final List<Classifier.Recognition> results = detector.recognizeImage(croppedBitmap);
+                        ArrayList<Classifier.Recognition> currResults = (ArrayList<Classifier.Recognition>) getTopResults(results);
+                        globalResults = currResults;
+
                         lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
 
                         Log.e("CHECK", "run: " + results.size());
@@ -265,7 +281,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                         final List<Classifier.Recognition> mappedRecognitions =
                                 new LinkedList<Classifier.Recognition>();
 
-                        for (final Classifier.Recognition result : results) {
+                        for (final Classifier.Recognition result : currResults) {
                             final RectF location = result.getLocation();
                             if (location != null && result.getConfidence() >= minimumConfidence) {
                                 canvas.drawRect(location, paint);
@@ -319,5 +335,66 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     @Override
     protected void setNumThreads(final int numThreads) {
         runInBackground(() -> detector.setNumThreads(numThreads));
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    private List<Classifier.Recognition> getTopResults(List<Classifier.Recognition> currResults){
+        ArrayList<Classifier.Recognition> topResults = new ArrayList<Classifier.Recognition>();
+        currResults.sort(Comparator.comparing(Classifier.Recognition::getConfidence));
+        Collections.reverse(currResults);
+        for (Classifier.Recognition result : currResults) {
+            if (topResults.size() > 8) {
+                break;
+            }
+            if(result.getTitle().equals("cube")) {
+                continue;
+            }
+            topResults.add(result);
+
+        }
+        if(topResults.size() < 9) {
+            return new ArrayList<>();
+        }
+        topResults.sort(new recognitionYComparator());
+        List<Classifier.Recognition> bottom3 = topResults.subList(0,3);
+        List<Classifier.Recognition> middle3 = topResults.subList(3,6);
+        List<Classifier.Recognition> top3= topResults.subList(6,9);
+        top3.sort(new recognitionXComparator());
+        middle3.sort(new recognitionXComparator());
+        bottom3.sort(new recognitionXComparator());
+        topResults = new ArrayList<Classifier.Recognition>();
+        topResults.addAll(bottom3);
+        topResults.addAll(middle3);
+        topResults.addAll(top3);
+
+        return topResults;
+
+
+    }
+    @Override
+    public void onDetect(View view) {
+        System.out.println("new on detect button pressed");
+        String stickerString = "";
+        for (Classifier.Recognition result : globalResults) {
+            stickerString += result.getTitle().toCharArray()[0];
+
+        }
+        TextView stickersTextView = findViewById(R.id.stickers_info);
+        stickersTextView.setText(stickerString);
+
+    }
+    private class recognitionXComparator implements Comparator<Classifier.Recognition> {
+
+        @Override
+        public int compare(Classifier.Recognition r1, Classifier.Recognition r2) {
+            return Float.compare(r1.getLocation().centerY(), r2.getLocation().centerY());
+        }
+    }
+    private class recognitionYComparator implements Comparator<Classifier.Recognition> {
+
+        @Override
+        public int compare(Classifier.Recognition r1, Classifier.Recognition r2) {
+            return Float.compare(r1.getLocation().centerX(), r2.getLocation().centerX());
+        }
     }
 }
