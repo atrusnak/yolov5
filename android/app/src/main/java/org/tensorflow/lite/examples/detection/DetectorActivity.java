@@ -16,6 +16,7 @@
 
 package org.tensorflow.lite.examples.detection;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -55,6 +56,13 @@ import org.tensorflow.lite.examples.detection.tflite.DetectorFactory;
 import org.tensorflow.lite.examples.detection.tflite.YoloV5Classifier;
 import org.tensorflow.lite.examples.detection.tracking.MultiBoxTracker;
 
+import com.chaquo.python.PyObject;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
+
+import org.tensorflow.lite.examples.detection.min2phase.Search;
+import org.tensorflow.lite.examples.detection.min2phase.Tools;
+
 /**
  * An activity that uses a TensorFlowMultiBoxDetector and ObjectTracker to detect and then track
  * objects.
@@ -65,7 +73,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     private static final DetectorMode MODE = DetectorMode.TF_OD_API;
     private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.3f;
     private static final boolean MAINTAIN_ASPECT = true;
-    private static final Size DESIRED_PREVIEW_SIZE = new Size(640, 640);
+    private static final Size DESIRED_PREVIEW_SIZE = new Size(512, 512);
     private static final boolean SAVE_PREVIEW_BITMAP = false;
     private static final float TEXT_SIZE_DIP = 10;
     OverlayView trackingOverlay;
@@ -87,11 +95,13 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
     private MultiBoxTracker tracker;
     private List<Classifier.Recognition> globalResults;
+    private String solution;
 
     private BorderedText borderedText;
 
     @Override
     public void onPreviewSizeChosen(final Size size, final int rotation) {
+        Python.start(new AndroidPlatform(this));
         final float textSizePx =
                 TypedValue.applyDimension(
                         TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, getResources().getDisplayMetrics());
@@ -343,13 +353,35 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
         currResults.sort(Comparator.comparing(Classifier.Recognition::getConfidence));
         Collections.reverse(currResults);
         for (Classifier.Recognition result : currResults) {
-            if (topResults.size() > 8) {
-                break;
-            }
             if(result.getTitle().equals("cube")) {
                 continue;
             }
-            topResults.add(result);
+            boolean intersects = false;
+            for (Classifier.Recognition currBest : topResults) {
+               float area1 = result.getLocation().width()*result.getLocation().height();
+               float area2 = currBest.getLocation().width()*result.getLocation().height();
+               RectF intersection = result.getLocation();
+               if(intersection.intersect(currBest.getLocation())){
+                   float intersectionArea = intersection.height()*intersection.width();
+                   float resultArea = result.getLocation().height()*result.getLocation().width();
+                   if(intersectionArea>resultArea/2.0) {
+                       intersects = true;
+                       if(currBest.getConfidence() > result.getConfidence()) {
+                          continue;
+                      }
+                      else {
+                          topResults.remove(currBest);
+                          topResults.add(result);
+                      }
+                   }
+               }
+            }
+            if (topResults.size() > 8) {
+                break;
+            }
+            if(!intersects) {
+               topResults.add(result);
+            }
 
         }
         if(topResults.size() < 9) {
@@ -379,18 +411,63 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
             stickerString += result.getTitle().toCharArray()[0];
 
         }
-        TextView stickersTextView = findViewById(R.id.stickers_info);
-        stickersTextView.setText(stickerString);
+        TextView front = findViewById(R.id.stickers_info);
+        TextView left = findViewById(R.id.stickers_info2);
+        TextView back = findViewById(R.id.stickers_info3);
+        TextView right = findViewById(R.id.stickers_info4);
+        TextView top = findViewById(R.id.stickers_info5);
+        TextView bottom = findViewById(R.id.stickers_info6);
+        if (front.getText().equals("NA")) {
+            front.setText(stickerString);
+        }
+        else if (left.getText().equals("NA")) {
+            left.setText(stickerString);
+        }
+        else if (back.getText().equals("NA")) {
+            back.setText(stickerString);
+        }
+        else if (right.getText().equals("NA")) {
+            right.setText(stickerString);
+        }
+        else if (top.getText().equals("NA")) {
+            top.setText(stickerString);
+        }
+        else if (bottom.getText().equals("NA")) {
+            bottom.setText(stickerString);
+        }
+
+        }
+        public void onSolve(View view) {
+            String scrambleString = "";
+            TextView front = findViewById(R.id.stickers_info);
+            TextView left = findViewById(R.id.stickers_info2);
+            TextView back = findViewById(R.id.stickers_info3);
+            TextView right = findViewById(R.id.stickers_info4);
+            TextView top = findViewById(R.id.stickers_info5);
+            TextView bottom = findViewById(R.id.stickers_info6);
+            scrambleString += top.getText();
+            scrambleString += right.getText();
+            scrambleString += front.getText();
+            scrambleString += bottom.getText();
+            scrambleString += left.getText();
+            scrambleString += back.getText();
+
+            solution = new Search().solution(scrambleString, 21, 100000000, 0, 0);
+            TextView solutionText = findViewById(R.id.solution_info);
+            solutionText.setText(solution);
+
+
 
     }
-    private class recognitionXComparator implements Comparator<Classifier.Recognition> {
+
+    private class recognitionYComparator implements Comparator<Classifier.Recognition> {
 
         @Override
         public int compare(Classifier.Recognition r1, Classifier.Recognition r2) {
             return Float.compare(r1.getLocation().centerY(), r2.getLocation().centerY());
         }
     }
-    private class recognitionYComparator implements Comparator<Classifier.Recognition> {
+    private class recognitionXComparator implements Comparator<Classifier.Recognition> {
 
         @Override
         public int compare(Classifier.Recognition r1, Classifier.Recognition r2) {

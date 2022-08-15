@@ -23,6 +23,7 @@
         android:hardwareAccelerated="true"
         android:debuggable="true"
         android:installLocation="internalOnly">
+        android:name="com.chaquo.python.android.PyApplication"
 
         <activity
             android:name=".DetectorActivity"

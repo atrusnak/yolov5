@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.chaquo.python'
 apply plugin: 'de.undercouch.download'
 
 android {
@@ -13,6 +14,11 @@ android {
 
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86'
+        }
+        python{
+            pip {
+                install "RubikTwoPhase"
+            }
         }
     }
     buildTypes {
@@ -66,3 +72,4 @@ dependencies {
     androidTestImplementation 'com.android.support.test:rules:1.0.2'
     androidTestImplementation 'com.google.truth:truth:1.0.1'
 }
+

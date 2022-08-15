@@ -42,13 +42,15 @@
             android:layout_alignParentTop="true"
             android:background="@color/tfe_semi_transparent">
 
-            <ImageView
+            <Button
+                android:id="@+id/solveButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/tfl2_logo" />
+                android:text="Solve"
+                android:onClick="onSolve"/>
 
             <Button
-                android:id="@+id/button"
+                android:id="@+id/detectButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Capture"

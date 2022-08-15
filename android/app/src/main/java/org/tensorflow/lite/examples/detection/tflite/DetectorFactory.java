@@ -16,7 +16,7 @@ public class DetectorFactory {
         int[][] masks = new int[][]{{0}};
         int[] anchors = new int[]{0};
 
-        if (modelFilename.equals("best2-fp16.tflite")) {
+        if (modelFilename.equals("best4-fp16.tflite")) {
             labelFilename = "file:///android_asset/cube.txt";
             isQuantized = false;
             inputSize = 256;
